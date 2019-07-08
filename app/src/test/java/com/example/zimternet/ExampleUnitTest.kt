@@ -1,4 +1,4 @@
-package com.example.zimternet
+package app.zimternet.traveleurope
 
 import org.junit.Test
 
