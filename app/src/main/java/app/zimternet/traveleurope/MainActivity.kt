@@ -29,6 +29,9 @@ import java.io.File
 import android.webkit.WebViewClient
 import java.io.ByteArrayInputStream
 import java.net.URLDecoder
+import com.microsoft.appcenter.AppCenter;
+import com.microsoft.appcenter.analytics.Analytics;
+import com.microsoft.appcenter.crashes.Crashes;
 
 
 class MainActivity : AppCompatActivity() {
@@ -44,6 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppCenter.start(application, "9c8e8924-2900-47ab-9203-6c20825cce08", Analytics::class.java, Crashes::class.java)
         setContentView(R.layout.activity_main)
 
         val wv = findViewById<WebView>(R.id.webView)
