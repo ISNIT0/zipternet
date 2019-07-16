@@ -6,9 +6,11 @@ import android.annotation.TargetApi
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.DialogInterface
+import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -142,7 +144,7 @@ class MainActivity : AppCompatActivity() {
         JNIKiwix()
 
         val files = obbDir.listFiles()
-        Log.d("ZIMT", "Files: $files")
+        Log.d("ZIMT", "Using obbDir [$obbDir]")
 
         val versionCode = BuildConfig.VERSION_CODE
 
@@ -176,11 +178,19 @@ class MainActivity : AppCompatActivity() {
 
             }
 
-            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest):WebResourceResponse {
-                val url = request.url.toString()
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String): Boolean {
+                if(url.startsWith("http") || url.startsWith("//")) {
+                    val i = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    startActivity(i)
+                } else {
+                    view!!.loadUrl(url)
+                }
+                return true
+            }
+
+            override fun shouldInterceptRequest(view: WebView, url:String):WebResourceResponse? {
                 Log.d("ZIMT", "URL: $url")
-                var response = super.shouldInterceptRequest(view, request)
+                var response = super.shouldInterceptRequest(view, url)
                 if(url.startsWith("file://")) {
                     val title = JNIKiwixString()
                     val mimeType = JNIKiwixString()
@@ -188,7 +198,7 @@ class MainActivity : AppCompatActivity() {
                     var articleUrl = URLDecoder.decode(url.replace("file://", ""))
                     articleUrl = articleUrl.replace("a/", "A/")
                     var data = currentJNIReader!!.getContent(articleUrl, title, mimeType, size)
-                    if(data.size == 0) {
+                    if(data.isEmpty()) {
                         articleUrl = articleUrl.replace("A/", "")
                         data = currentJNIReader!!.getContent(articleUrl, title, mimeType, size)
                     }
