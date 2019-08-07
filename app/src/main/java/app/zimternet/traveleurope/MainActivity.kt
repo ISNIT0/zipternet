@@ -1,47 +1,39 @@
 package app.zimternet.traveleurope
 
-import android.Manifest
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
-import android.annotation.TargetApi
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
-import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Build
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Environment
-import android.os.Environment.getExternalStorageDirectory
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
-import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
-
-import org.kiwix.kiwixlib.JNIKiwix;
-import org.kiwix.kiwixlib.JNIKiwixInt;
-import org.kiwix.kiwixlib.JNIKiwixReader;
-import org.kiwix.kiwixlib.JNIKiwixString;
-import java.io.File
 import android.webkit.WebViewClient
-import java.io.ByteArrayInputStream
-import java.net.URLDecoder
-import com.microsoft.appcenter.AppCenter;
-import com.microsoft.appcenter.analytics.Analytics;
-import com.microsoft.appcenter.crashes.Crashes;
+import com.microsoft.appcenter.AppCenter
+import com.microsoft.appcenter.analytics.Analytics
+import com.microsoft.appcenter.crashes.Crashes
 import org.jetbrains.anko.longToast
-import org.jetbrains.anko.toast
+import org.kiwix.kiwixlib.JNIKiwix
+import org.kiwix.kiwixlib.JNIKiwixInt
+import org.kiwix.kiwixlib.JNIKiwixReader
+import org.kiwix.kiwixlib.JNIKiwixString
+import java.io.ByteArrayInputStream
+import java.io.File
+import java.net.URLDecoder
 
+private var articleUrl: String? = null
 
 class MainActivity : AppCompatActivity() {
 
     var currentJNIReader: JNIKiwixReader? = null
-    var mWebView: WebView? = null
+    private var mWebView: WebView? = null
+    private val URL_KEY = "ARTICLE_URL"
 
 
     private fun isPermissionGranted(permission:String):Boolean =  ContextCompat.checkSelfPermission(
@@ -142,6 +134,19 @@ class MainActivity : AppCompatActivity() {
         finish()
     }
 
+    override fun onSaveInstanceState(outState: Bundle?) {
+        // outPersistentState.putString(URL_KEY, article_url)
+        outState?.putString(URL_KEY, articleUrl)
+        Log.d("ZIMT", "Url saved is: " + articleUrl)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
+        super.onRestoreInstanceState(savedInstanceState)
+        articleUrl = savedInstanceState?.getString(URL_KEY)
+        Log.d("ZIMT", "Url retrieved is: " + articleUrl)
+    }
+
     private fun loadContent(){
         JNIKiwix()
 
@@ -191,6 +196,7 @@ class MainActivity : AppCompatActivity() {
                     val i = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     startActivity(i)
                 } else {
+                    articleUrl = url
                     view!!.loadUrl(url)
                 }
                 return true
@@ -222,6 +228,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        mWebView!!.loadUrl("file://$mainPage");
+        if (articleUrl != null) {
+            mWebView!!.loadUrl(articleUrl)
+            Log.d("ZIMT", "Loading article URL: " + articleUrl)
+        } else {
+            mWebView!!.loadUrl("file://$mainPage")
+            Log.d("ZIMT", "Loading main page :(")
+        }
     }
 }
