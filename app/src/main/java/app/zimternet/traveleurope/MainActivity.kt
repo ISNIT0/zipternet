@@ -34,6 +34,8 @@ import java.net.URLDecoder
 import com.microsoft.appcenter.AppCenter;
 import com.microsoft.appcenter.analytics.Analytics;
 import com.microsoft.appcenter.crashes.Crashes;
+import org.jetbrains.anko.longToast
+import org.jetbrains.anko.toast
 
 
 class MainActivity : AppCompatActivity() {
@@ -55,10 +57,10 @@ class MainActivity : AppCompatActivity() {
         val wv = findViewById<WebView>(R.id.webView)
         mWebView = wv;
 
-//        mWebView!!.loadData("<h1>Loading</h1>", "text/html", "UTF-8")
+        mWebView!!.loadData("<h1>Loading Contents</h1>", "text/html", "UTF-8")
 
         if (isPermissionGranted(READ_EXTERNAL_STORAGE)) {
-            loadContent();
+            loadContent()
         } else {
             showPermissionReasonAndRequest(
 //                "Notice",
@@ -145,6 +147,12 @@ class MainActivity : AppCompatActivity() {
 
         val files = obbDir.listFiles()
         Log.d("ZIMT", "Using obbDir [$obbDir]")
+
+        if (files.isEmpty()) {
+            longToast("Sorry, cannot continue until we have the ZIM file.")
+            mWebView!!.loadData("<h1>Sorry: Cannot load contents</h1>", "text/html", "UTF-8")
+            return
+        }
 
         val versionCode = BuildConfig.VERSION_CODE
 
