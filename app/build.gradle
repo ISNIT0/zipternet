@@ -7,11 +7,11 @@ apply plugin: 'kotlin-android-extensions'
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "app.zimternet.traveleurope"
+        applicationId "app.zipternet.traveleurope"
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 8
-        versionName "0.1"
+        versionCode 10
+        versionName "0.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -32,6 +32,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation "org.jetbrains.anko:anko:$anko_version"
     implementation 'org.kiwix.kiwixlib:kiwixlib:1.0.12'
+    implementation 'com.google.code.gson:gson:2.8.5'
 
     def appCenterSdkVersion = '2.1.0'
     implementation "com.microsoft.appcenter:appcenter-analytics:${appCenterSdkVersion}"

@@ -1,4 +1,4 @@
-package app.zimternet.traveleurope
+package app.zipternet.traveleurope
 
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.app.AlertDialog
@@ -12,26 +12,27 @@ import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.webkit.MimeTypeMap
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.google.gson.Gson
 import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
 import org.jetbrains.anko.longToast
-import org.kiwix.kiwixlib.JNIKiwix
-import org.kiwix.kiwixlib.JNIKiwixInt
-import org.kiwix.kiwixlib.JNIKiwixReader
-import org.kiwix.kiwixlib.JNIKiwixString
-import java.io.ByteArrayInputStream
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.net.URLDecoder
+import java.util.zip.ZipFile
 
 private var articleUrl: String? = null
 
 class MainActivity : AppCompatActivity() {
 
-    var currentJNIReader: JNIKiwixReader? = null
+    var zipReader: ZipFile? = null
     private var mWebView: WebView? = null
     private val URL_KEY = "ARTICLE_URL"
 
@@ -47,7 +48,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val wv = findViewById<WebView>(R.id.webView)
-        mWebView = wv;
+        mWebView = wv
+
+        mWebView!!.settings.javaScriptEnabled = true
 
         mWebView!!.loadData("<h1>Loading Contents</h1>", "text/html", "UTF-8")
 
@@ -137,21 +140,26 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle?) {
         // outPersistentState.putString(URL_KEY, article_url)
         outState?.putString(URL_KEY, articleUrl)
-        Log.d("ZIMT", "Url saved is: " + articleUrl)
+        Log.d("ZIPT", "Url saved is: " + articleUrl)
         super.onSaveInstanceState(outState)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
         super.onRestoreInstanceState(savedInstanceState)
         articleUrl = savedInstanceState?.getString(URL_KEY)
-        Log.d("ZIMT", "Url retrieved is: " + articleUrl)
+        Log.d("ZIPT", "Url retrieved is: $articleUrl")
+    }
+
+    private fun guessMimeType(url: String): String? {
+        val m = MimeTypeMap.getSingleton()
+        val ext = MimeTypeMap.getFileExtensionFromUrl(url)
+        return m.getMimeTypeFromExtension(ext)
     }
 
     private fun loadContent(){
-        JNIKiwix()
 
         val files = obbDir.listFiles()
-        Log.d("ZIMT", "Using obbDir [$obbDir]")
+        Log.d("ZIPT", "Using obbDir [$obbDir]")
 
         if (files.isEmpty()) {
             longToast("Sorry, cannot continue until we have the ZIM file.")
@@ -163,18 +171,32 @@ class MainActivity : AppCompatActivity() {
 
 //        val filePath = obbDir.absolutePath + "/main." + versionCode + "." + packageName + ".obb"
         val filePath = files[0].absolutePath
-        Log.d("ZIMT", "Reading file from: $filePath")
+        Log.d("ZIPT", "Reading file from: $filePath")
 
 
         if (!File(filePath).exists()) {
-            Log.e("ZIMT", "Unable to find the ZIM file $filePath");
+            Log.e("ZIPT", "Unable to find the ZIM file $filePath");
         }
 
-        currentJNIReader = JNIKiwixReader(filePath);
-        Log.d("ZIMT", "Read file")
+        Log.d("ZIPT", "Read file")
+        zipReader = ZipFile(filePath)
 
-        val mainPage = currentJNIReader!!.mainPage
-        Log.d("ZIMT", "Home Page:\n$mainPage")
+        var mainPage = "index.html"
+
+        val confEntry = zipReader!!.getEntry("config.json")
+        if(confEntry != null) {
+            val inpStream = zipReader!!.getInputStream(confEntry)
+            val isReader = InputStreamReader(inpStream)
+            val br = BufferedReader(isReader)
+            val str = br.use { it.readText() }
+            val gson = Gson()
+            val config = gson.fromJson(str, ConfigType::class.java)
+            if(config.mainPage != null) {
+                mainPage = config.mainPage!!
+            }
+        }
+
+        Log.d("ZIPT", "Home Page:\n$mainPage")
 
 
         mWebView!!.webViewClient = object : WebViewClient() {
@@ -202,25 +224,23 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
 
-            override fun shouldInterceptRequest(view: WebView, url:String):WebResourceResponse? {
-                Log.d("ZIMT", "URL: $url")
+            override fun shouldInterceptRequest(view: WebView, url:String): WebResourceResponse? {
+                Log.d("ZIPT", "URL: $url")
                 var response = super.shouldInterceptRequest(view, url)
-                if(url.startsWith("file://")) {
-                    val title = JNIKiwixString()
-                    val mimeType = JNIKiwixString()
-                    val size = JNIKiwixInt()
-                    var articleUrl = URLDecoder.decode(url.replace("file://", ""))
-                    articleUrl = articleUrl.replace("a/", "A/")
-                    var data = currentJNIReader!!.getContent(articleUrl, title, mimeType, size)
-                    if(data.isEmpty()) {
-                        articleUrl = articleUrl.replace("A/", "")
-                        data = currentJNIReader!!.getContent(articleUrl, title, mimeType, size)
+                if(url.startsWith("content://app.zipternet.traveleurope/")) {
+                    var articleUrl = URLDecoder.decode(url.replace("content://app.zipternet.traveleurope/", ""))
+                    articleUrl = articleUrl.replace("a/", "A/").trimEnd('/')
+                    val fileEntry = zipReader!!.getEntry(articleUrl)
+                    var data: InputStream? = null
+                    if(fileEntry != null) {
+                        data = zipReader!!.getInputStream(fileEntry)
                     }
 
+                    val mimeGuess = guessMimeType(articleUrl)
                     response = WebResourceResponse(
-                        mimeType.value,
+                        mimeGuess,
                         "utf-8",
-                        ByteArrayInputStream(data)
+                        data
                     )
                 }
 
@@ -230,10 +250,10 @@ class MainActivity : AppCompatActivity() {
 
         if (articleUrl != null) {
             mWebView!!.loadUrl(articleUrl)
-            Log.d("ZIMT", "Loading article URL: " + articleUrl)
+            Log.d("ZIPT", "Loading article URL: " + articleUrl)
         } else {
-            mWebView!!.loadUrl("file://$mainPage")
-            Log.d("ZIMT", "Loading main page :(")
+            mWebView!!.loadUrl("content://app.zipternet.traveleurope/$mainPage")
+            Log.d("ZIPT", "Loading main page :(")
         }
     }
 }
