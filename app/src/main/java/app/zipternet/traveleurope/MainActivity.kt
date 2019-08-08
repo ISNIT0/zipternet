@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AppCenter.start(application, "9c8e8924-2900-47ab-9203-6c20825cce08", Analytics::class.java, Crashes::class.java)
+        AppCenter.start(application, "e6a5cf41-408e-483f-bc73-17e9ff50721e", Analytics::class.java, Crashes::class.java)
         setContentView(R.layout.activity_main)
 
         val wv = findViewById<WebView>(R.id.webView)
