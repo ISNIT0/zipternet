@@ -1,4 +1,4 @@
-package app.zipternet.traveleurope
+package app.zipternet.custom
 
 import android.support.test.InstrumentationRegistry
 import android.support.test.runner.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getTargetContext()
-        assertEquals("app.zipternet.traveleurope", appContext.packageName)
+        assertEquals("app.zipternet.custom", appContext.packageName)
     }
 }

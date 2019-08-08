@@ -1,4 +1,4 @@
-package app.zipternet.traveleurope
+package app.zipternet.custom
 
 import org.junit.Test
 

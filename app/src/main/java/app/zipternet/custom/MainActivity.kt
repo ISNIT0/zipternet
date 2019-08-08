@@ -1,4 +1,4 @@
-package app.zipternet.traveleurope
+package app.zipternet.custom
 
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.app.AlertDialog
@@ -22,9 +22,9 @@ import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
 import org.jetbrains.anko.longToast
 import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.io.File
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.net.URLDecoder
 import java.util.zip.ZipFile
 
@@ -227,8 +227,8 @@ class MainActivity : AppCompatActivity() {
             override fun shouldInterceptRequest(view: WebView, url:String): WebResourceResponse? {
                 Log.d("ZIPT", "URL: $url")
                 var response = super.shouldInterceptRequest(view, url)
-                if(url.startsWith("content://app.zipternet.traveleurope/")) {
-                    var articleUrl = URLDecoder.decode(url.replace("content://app.zipternet.traveleurope/", ""))
+                if(url.startsWith("content://app.zipternet.custom/")) {
+                    var articleUrl = URLDecoder.decode(url.replace("content://app.zipternet.custom/", ""))
                     articleUrl = articleUrl.replace("a/", "A/").trimEnd('/')
                     val fileEntry = zipReader!!.getEntry(articleUrl)
                     var data: InputStream? = null
@@ -252,7 +252,7 @@ class MainActivity : AppCompatActivity() {
             mWebView!!.loadUrl(articleUrl)
             Log.d("ZIPT", "Loading article URL: " + articleUrl)
         } else {
-            mWebView!!.loadUrl("content://app.zipternet.traveleurope/$mainPage")
+            mWebView!!.loadUrl("content://app.zipternet.custom/$mainPage")
             Log.d("ZIPT", "Loading main page :(")
         }
     }
