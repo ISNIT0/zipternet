@@ -84,3 +84,5 @@ lint/tmp/
 **/.DS_Store
 Archive
 Archive.zip
+
+**/ic_launcher_foreground.png

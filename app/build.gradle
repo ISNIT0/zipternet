@@ -1,3 +1,4 @@
+import java.nio.file.Files
 import java.util.zip.ZipFile
 import groovy.json.JsonSlurper
 import java.util.logging.Logger
@@ -12,19 +13,33 @@ apply plugin: 'kotlin-android-extensions'
 
 def slurper = new JsonSlurper()
 
-def appName = "Custom Zip App"
+def appName = "customzipapp"
+def iconPathStr = "./icon/icon.png"
 
 if(project.hasProperty("zipPath")) {
     def zipReader = new ZipFile(project.zipPath)
     def confEntry = zipReader.getEntry("config.json")
     def inpStream = zipReader.getInputStream(confEntry)
     def configStr = inpStream.text
-    logger.info("test: $configStr")
 
     def config = slurper.parseText(configStr)
     def zipName = config.name
     appName = zipName.replaceAll(' ', '').toLowerCase()
+
+    if(config.icon) {
+        def iconEntry = zipReader.getEntry(config.icon)
+        def iconInpStream = zipReader.getInputStream(iconEntry)
+        def outStream = new FileOutputStream(iconPathStr);
+        outStream << iconInpStream
+    }
 }
+
+def iconPath = new File(iconPathStr)
+
+def iconTargetPath = new File("app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png")
+
+iconTargetPath.delete()
+Files.copy(iconPath.toPath(), iconTargetPath.toPath())
 
 android {
     compileSdkVersion 28
