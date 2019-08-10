@@ -1,6 +1,7 @@
 package app.zipternet.custom
 
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
@@ -11,11 +12,13 @@ import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.Toolbar
 import android.util.Log
 import android.webkit.MimeTypeMap
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.*
 import com.google.gson.Gson
 import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
@@ -34,7 +37,12 @@ class MainActivity : AppCompatActivity() {
 
     var zipReader: ZipFile? = null
     private var mWebView: WebView? = null
-    private val URL_KEY = "ARTICLE_URL"
+    private var mSearch: AutoCompleteTextView? = null
+    private var mToolbar: Toolbar? = null
+    private var mHomeButton: ImageButton? = null
+    private var mCompleteAdapter: ArrayAdapter<String>? = null
+
+    private var articlesByTitle: MutableMap<String, String> = mutableMapOf()
 
 
     private fun isPermissionGranted(permission:String):Boolean =  ContextCompat.checkSelfPermission(
@@ -42,13 +50,16 @@ class MainActivity : AppCompatActivity() {
         permission
     ) == PackageManager.PERMISSION_GRANTED
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppCenter.start(application, "e6a5cf41-408e-483f-bc73-17e9ff50721e", Analytics::class.java, Crashes::class.java)
         setContentView(R.layout.activity_main)
 
-        val wv = findViewById<WebView>(R.id.webView)
-        mWebView = wv
+        mToolbar = findViewById(R.id.toolbar)
+        mSearch = findViewById(R.id.search)
+        mHomeButton = findViewById(R.id.homeButton)
+        mWebView = findViewById(R.id.webView)
 
         mWebView!!.settings.javaScriptEnabled = true
 
@@ -66,6 +77,7 @@ class MainActivity : AppCompatActivity() {
                 1
             )
         }
+
     }
 
     private fun showPermissionReasonAndRequest(
@@ -127,7 +139,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if(mWebView!= null) {
+        if(mWebView != null) {
             val canGoBack = mWebView!!.canGoBack()
             if (mWebView != null && canGoBack) {
                 mWebView!!.goBack()
@@ -135,19 +147,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         finish()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle?) {
-        // outPersistentState.putString(URL_KEY, article_url)
-        outState?.putString(URL_KEY, articleUrl)
-        Log.d("ZIPT", "Url saved is: " + articleUrl)
-        super.onSaveInstanceState(outState)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
-        super.onRestoreInstanceState(savedInstanceState)
-        articleUrl = savedInstanceState?.getString(URL_KEY)
-        Log.d("ZIPT", "Url retrieved is: $articleUrl")
     }
 
     private fun guessMimeType(url: String): String? {
@@ -182,6 +181,7 @@ class MainActivity : AppCompatActivity() {
         zipReader = ZipFile(filePath)
 
         var mainPage = "index.html"
+        var articleListPath = "__articles"
 
         val confEntry = zipReader!!.getEntry("config.json")
         if(confEntry != null) {
@@ -194,10 +194,12 @@ class MainActivity : AppCompatActivity() {
             if(config.mainPage != null) {
                 mainPage = config.mainPage!!
             }
+            if(config.articleList != null) {
+                articleListPath = config.articleList!!
+            }
         }
 
         Log.d("ZIPT", "Home Page:\n$mainPage")
-
 
         mWebView!!.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -209,6 +211,8 @@ class MainActivity : AppCompatActivity() {
 //                spinner.setVisibility(View.GONE)
 
                 view.visibility = WebView.VISIBLE
+                mHomeButton!!.isEnabled = !url.endsWith(mainPage)
+
                 super.onPageFinished(view, url)
 
             }
@@ -248,12 +252,46 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+//        mWebView!!.onScrollChange { v, scrollX, scrollY, oldScrollX, oldScrollY ->
+////            val delta = scrollY - oldScrollY
+////            if(delta > 20) {
+////                mToolbar!!.backgroundColor = 0xFF00FF00.toInt()
+////                mAppBar!!.setExpanded(false, true)
+////            } else if(delta < -20) {
+////                mToolbar!!.backgroundColor = 0xFF0000FF.toInt()
+////                mAppBar!!.setExpanded(true, true)
+////            }
+////        }
+
+        val mainArticleUrl = "content://app.zipternet.custom/$mainPage"
         if (articleUrl != null) {
             mWebView!!.loadUrl(articleUrl)
             Log.d("ZIPT", "Loading article URL: " + articleUrl)
         } else {
-            mWebView!!.loadUrl("content://app.zipternet.custom/$mainPage")
+            mWebView!!.loadUrl(mainArticleUrl)
             Log.d("ZIPT", "Loading main page :(")
         }
+
+        val articleListEntry = zipReader!!.getEntry(articleListPath)
+        val articleListInputStream = zipReader!!.getInputStream(articleListEntry)
+        val articleListTsv = BufferedReader(articleListInputStream.reader()).readText().trim()
+        for (line in articleListTsv.split("\n")) {
+            val (title, path) = line.split("\t")
+            articlesByTitle[title] = path
+        }
+
+        mCompleteAdapter = ArrayAdapter(this, android.R.layout.select_dialog_item, articlesByTitle.keys.toList())
+        mSearch!!.setAdapter(mCompleteAdapter)
+
+        mSearch!!.setOnItemClickListener { parent, view, position, id ->
+            val text = (view as TextView).text.toString()
+            val articlePath = articlesByTitle[text]
+            mWebView!!.loadUrl("content://app.zipternet.custom/$articlePath")
+            mSearch!!.setText("")
+            mSearch!!.clearFocus()
+        }
+
+
+        mHomeButton!!.setOnClickListener { view -> mWebView!!.loadUrl(mainArticleUrl)}
     }
 }
