@@ -42,6 +42,9 @@ def iconTargetPath = new File("app/src/main/res/mipmap-xxhdpi/ic_launcher_foregr
 iconTargetPath.delete()
 Files.copy(iconPath.toPath(), iconTargetPath.toPath())
 
+def propFile = new File(project.projectDir.parent, project.property("signing.properties"))
+
+
 android {
     compileSdkVersion 28
     defaultConfig {
@@ -53,11 +56,30 @@ android {
         versionName "0.2"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
+
+    if(project.hasProperty("signing.properties")
+            && propFile.exists()) {
+
+        Properties props = new Properties()
+        props.load(new FileInputStream(file(propFile)))
+
+
+        signingConfigs {
+            release {
+                storeFile file(props['keystore'])
+                storePassword props['keystore.password']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             resValue "string", "app_name", appName
+            signingConfig signingConfigs.release
         }
     }
 }

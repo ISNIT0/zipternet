@@ -1,0 +1,4 @@
+keystore=release.keystore
+keystore.password=XXXX
+keyAlias=XXXX
+keyPassword=XXX

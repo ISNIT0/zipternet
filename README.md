@@ -1,1 +1,6 @@
-[![Build status](https://build.appcenter.ms/v0.1/apps/e4716b65-f590-4de5-826d-0f6c4d4d9325/branches/master/badge)](https://appcenter.ms)
+## Releasing Signed Custom Apps
+```bash
+cp .signing.example .signing
+cp path/to/keystore release.keystore
+gradle -PzipPath=/path/to/zip assembleRelease
+```
