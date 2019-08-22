@@ -86,3 +86,7 @@ Archive
 Archive.zip
 
 **/ic_launcher_foreground.png
+
+
+release.keystore
+.signing
