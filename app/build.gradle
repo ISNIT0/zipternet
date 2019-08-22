@@ -13,7 +13,8 @@ apply plugin: 'kotlin-android-extensions'
 
 def slurper = new JsonSlurper()
 
-def appName = "customzipapp"
+def zipName = "Custom Zip App"
+def appName = "custom"
 def iconPathStr = "./icon/icon.png"
 
 if(project.hasProperty("zipPath")) {
@@ -23,7 +24,7 @@ if(project.hasProperty("zipPath")) {
     def configStr = inpStream.text
 
     def config = slurper.parseText(configStr)
-    def zipName = config.name
+    zipName = config.name
     appName = zipName.replaceAll(' ', '').toLowerCase()
 
     if(config.icon) {
@@ -45,7 +46,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "app.zipternet.$appName"
-        manifestPlaceholders = [appLabel:appName]
+        manifestPlaceholders = [appLabel:zipName]
         minSdkVersion 16
         targetSdkVersion 28
         versionCode 10
